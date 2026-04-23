@@ -1,0 +1,55 @@
+Question 4:
+select id_adh from galette_adherents
+where (id_statut >= 0 AND id_statut <= 5)
+Or id_adh = 42
+union
+select g3.id_adh from galette_adherents g1
+join galette_groups_members g2 on g1.id_adh = g2.id_adh
+join galette_groups_managers g3 on g3.id_group = g2.id_group
+and g1.id_adh = 42
+Bizarre c'est bcp de gens
+
+Question 5:
+Select id_adh, id_group from galette_groups_managers
+union
+(select g1.id_adh, g2.id_group from galette_groups_members g1
+join galette_groups g2 on g1.id_group = g2.id_group
+left join galette_groups_managers g3 on g2.id_group = g3.id_group
+Where g3.id_group is null)
+order by id_group
+
+
+Question 6: (ceux qui sont à jour le 23 mars 2022)
+select distinct id_adh from galette_cotisations g
+join galette_types_cotisation g1 on g.id_type_cotis = g1.id_type_cotis
+where cotis_extension = true
+and date_fin_cotis >= '2022-03-23'
+and date_debut_cotis <= '2022-03-23'
+union
+select id_adh from galette_adherents
+where bool_exempt_adh = true
+order by id_adh
+
+Question 8:
+select id_adh from galette_cotisations
+where date_fin_cotis <= '2022-04-02'
+and date_debut_cotis >= '2022-03-23'
+
+Question 9:
+select trans_amount, SUM(montant_cotis) from galette_transactions t, galette_cotisations c
+where t.trans_id = c.trans_id
+group by t.trans_id
+Having trans_amount <> Sum(montant_cotis)
+
+
+
+
+Question 10:
+select id_adh, sum(trans_amount), max(trans_date) from galette_transactions
+where trans_date <= '2022-11-30' and trans_date >= '2022-01-01'
+group by id_adh
+
+
+
+
+
