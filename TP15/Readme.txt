@@ -1,0 +1,1 @@
+Lancer astar via la commande make et experience magic
