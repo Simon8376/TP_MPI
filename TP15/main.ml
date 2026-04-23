@@ -3,6 +3,13 @@ type grille = int array array
 
 let _ = Random.init (int_of_float ((Sys.time ()) *. 100000000.))
 
+
+let b = 5 (*Longeur des segments de l'adjacence*)
+let n, m = 200, 200 (*Taille de la grille*)
+let startx, starty = n/2, m/2  (*Position de la case de départ*)
+let height = 5 (*Taille de chaque pixel*)
+let p = 0.3 (*Proba qu'il y ait un obstacle (grosso modo)*)
+
 let rand p = (*1 avec proba p*)
 	let b = (1 lsl 30) -1 in
 	let n = Random.int b in 
@@ -19,7 +26,7 @@ let construire_grille n m p =
 	done;
 	mat
 
-let tracer_grille grille k =
+let tracer_grille grille colo k =
   Graphics.open_graph "";
 	Graphics.resize_window 1000 1000;
 	let t = Array.length grille in
@@ -27,7 +34,7 @@ let tracer_grille grille k =
 		for j = 0 to t-1 do 
 			let color = 
 				if grille.(i).(j) = 1 then 
-					Graphics.black
+					(947284739857399573 * colo.(i).(j)) mod (1 lsl 14)
 				else
 					Graphics.white
 			in
@@ -49,6 +56,19 @@ let voisins_libres grille (i, j) =
 exception Found
 
 
+let mix tab = 
+	let arr = Array.of_list tab in 
+	for i = 0 to Array.length arr -1 do 
+		for j = 0 to i-1 do 
+			if rand 0.5 = 1 then 
+				let k = arr.(i) in 
+				arr.(i) <- arr.(j);
+				arr.(j) <- k 
+		done;
+	done;
+	Array.to_list arr
+
+
 let ensemble_accessibles grille (i, j) = (*modification pratique de existe_chemin*)
 	let vus = Array.make_matrix (Array.length grille) (Array.length grille.(0)) false in
 	let count = ref 0 in
@@ -58,7 +78,7 @@ let ensemble_accessibles grille (i, j) = (*modification pratique de existe_chemi
 		incr count;
 		let (x, y) = Stack.pop s in
 		vus.(x).(y) <- true;
-		let l = voisins_libres grille (x, y) in 
+		let l = mix (voisins_libres grille (x, y)) in 
 		List.iter (fun (z, w) -> if not vus.(z).(w) then Stack.push (z, w) s) l
 	done;
 	vus				
@@ -76,8 +96,8 @@ Extraction du min en O(1)
 Insertion en O(log n)*)
 
 type pfile = {
-	tab : ((int * int) * int) array; (*Couples (coordonnées), poids. C'est un tas 
-									min sur le poids*)
+	mutable tab : ((int * int) * int) array; (*Couples (coordonnées), poids. C'est un tas 
+									min sur le poids. Il est dynamique*)
 	mutable len : int;
 	loc : (((int * int) * int), int) Hashtbl.t;
 }
@@ -133,6 +153,15 @@ let pfile_defile pfile =
 		res 
 
 
+let agrandit tab = 
+	let n = Array.length tab in 
+	let new_arr = Array.make (2*n) tab.(0) in 
+	for i = 0 to n-1 do 
+		new_arr.(i) <- tab.(i)
+	done;
+	new_arr
+
+
 let pfile_maj pfile el = 
 	match Hashtbl.find_opt pfile.loc el with 
 	|  Some v -> 
@@ -140,6 +169,8 @@ let pfile_maj pfile el =
 		let k = percole_haut pfile v in
 		percole_bas pfile k
 	|  None -> 
+		if pfile.len >= Array.length pfile.tab then 
+			pfile.tab <- agrandit pfile.tab;
 		pfile.tab.(pfile.len) <- el;
 		pfile.len <- pfile.len +1;
 		Hashtbl.add pfile.loc el (pfile.len -1);
@@ -163,13 +194,13 @@ let rec affiche_chemin color ch k =
 
 let astar grille (i, j) (k, l) h height = 
 	let h1 = h (k, l) in
-	let n = Array.length grille in
-	let m = Array.length grille.(0) in
 	let pfile = {
-		tab = Array.make (n*m) ((-1, -1), -1);
+		tab = Array.make 10 ((-1, -1), -1);
 		len = 0;
 		loc = Hashtbl.create 40;
 	} in 
+
+	let n, m = Array.length grille, Array.length grille.(0) in
 
 	let d = Array.make_matrix n m (10000000, []) in
 	d.(i).(j) <- (0, [(i, j)]);
@@ -202,6 +233,78 @@ let astar grille (i, j) (k, l) h height =
 	end
 
 
+let chemin_direct (i, j) (x, y) = 
+	let len_ch = max (i-x) (x-i) + max (j-y) (y-j) in
+	List.init len_ch (fun c -> (i + (x-i)*c/len_ch, j + (y-j)*c/len_ch))
+
+
+let construire_graphe grille b =
+	let n, m = Array.length grille, Array.length grille.(0) in 
+	let adj = Array.make_matrix n m [] in
+
+	let voisins_segments (i, j) = 
+		for k = max 0 (i-b) to min n (i+b) do 
+			for l = max 0 (j-b) to min m (j+b) do 
+				let ch = chemin_direct (i, j) (k, l) in 
+				if not (List.exists (fun (x, y) -> grille.(x).(y) = 1) ch) then 
+					adj.(i).(j) <- (k, l) :: adj.(i).(j)
+			done
+		done
+	in
+	for i = 0 to n-1 do 
+		for j = 0 to m-1 do 
+			if grille.(i).(j) = 1 then 
+				adj.(i).(j) <- []
+			else
+				voisins_segments (i, j)
+		done;
+	done;
+	adj
+
+
+
+let astar_partie_3 grille adjacence (i, j) (k, l) h height = 
+	let h1 = h (k, l) in
+	let pfile = {
+		tab = Array.make 10 ((-1, -1), -1);
+		len = 0;
+		loc = Hashtbl.create 40;
+	} in 
+
+	let n, m = Array.length grille, Array.length grille.(0) in
+
+
+	let d = Array.make_matrix n m (10000000, []) in
+	d.(i).(j) <- (0, [(i, j)]);
+	pfile_maj pfile ((i, j), 0);
+
+	try
+		while pfile.len != 0 do 
+			let (x, y), ch = pfile_defile pfile in
+			let dist, ch = d.(x).(y) in
+			affiche_chemin Graphics.blue ch height;
+			if (x, y) = (k, l) then raise Found 
+			else begin
+				List.iter (fun (z, w) -> 
+					let new_d = dist + 1 in 
+					if new_d < fst d.(z).(w) then begin
+						pfile_maj pfile ((z, w), new_d + h1 (z, w));
+						Printf.printf "Added to pfile\n";
+						d.(z).(w) <- new_d, (chemin_direct (x, y) (z, w)) @ ch;
+						draw (z, w) height Graphics.yellow;
+					end) 
+							adjacence.(x).(y);
+				Unix.sleepf 0.05;
+				affiche_chemin Graphics.cyan ch height
+			end
+		done;
+		failwith "Not found"
+	with Found -> begin
+		Printf.printf "FOUND!";
+		affiche_chemin Graphics.red (snd d.(k).(l)) height
+	end
+
+
 let eucli (x, y) (k, l) = 
 	(k-x)*(k-x) + (l-y)*(l-y)
 
@@ -211,17 +314,69 @@ let manhattan (x, y) (k, l) =
 
 
 
+
+(*Comment trouver les composantes connexes distinctes: on a un tableau vus de toutes les cases.
+Par un dfs, on ajoute une nouvelle couleur en marquant tous les sommets de cette couleur à vus
+Ensuite on colorie selon le marquage de vus*)
+
+
+let coloration grille = 
+	let n, m = Array.length grille, Array.length grille.(0) in
+	let vus = Array.make_matrix n m (-1) in 
+	let grille2 = Array.make_matrix n m 0 in 
+	for i = 0 to n-1 do 
+		for j = 0 to n-1 do 
+			grille2.(i).(j) <- 1-grille.(i).(j)
+		done
+	done;
+	
+	let rec dfs k (i, j)= 
+		if vus.(i).(j) = -1 then begin
+			vus.(i).(j) <- k;
+			List.iter (dfs k) (voisins_libres grille2 (i, j))
+		end
+	in
+
+	let k = ref 0 in
+	for i = 0 to n-1 do 
+		for j = 0 to m-1 do 
+			if vus.(i).(j) = -1 && grille.(i).(j) = 1 then (
+				dfs !k (i, j);
+				incr k
+			)
+		done;
+	done;
+	
+	vus
+
+
+
+
 let main () =
-	let height = 5 in
-	let h = manhattan in
-	let grille = construire_grille 200 200 0.3 in
-	tracer_grille grille height;
-	let (x, y) = (100, 100) in
+	let h = eucli in
+	let grille = construire_grille n m p in
+	let colo = coloration grille in
+	let (x, y) = (startx, starty) in
 	grille.(x).(y) <- 0;
 	let (k, l) = choice_within (ensemble_accessibles grille (x, y)) in
+
+	Graphics.set_window_title "astar basique";
+	tracer_grille grille colo height;
 	draw (k, l) height Graphics.green;
 	draw (x, y) height Graphics.yellow;
 	astar grille (x, y) (k, l) h height;
-	Unix.sleepf 1.
+
+	Unix.sleepf 1.;
+
+	Graphics.set_window_title "astar turbo: calcul de l'adjacence...";
+	tracer_grille grille colo height;
+	Unix.sleepf 1.;
+	draw (k, l) height Graphics.green;
+	draw (x, y) height Graphics.yellow;
+	let adj = construire_graphe grille b in
+	Graphics.set_window_title "astar turbo: execution";
+	astar_partie_3 grille adj (x, y) (k, l) h height;
+
+	Unix.sleepf 5.
 
 let _ = main ()
