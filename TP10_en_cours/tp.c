@@ -52,7 +52,7 @@ graph* graphe_genere(int n, float p){
         }
     }
     for (int i = 0; i < n; i++){
-        melange_liste(g -> adj[i], n);
+        melange_liste(g -> adj[i], g->degre[i]);
     }
     return g;
 }
@@ -81,7 +81,7 @@ void test_genere(void){
             for (int i = 0; i < g->n; i++){
                 c = c + g->degre[i];
                 for (int j = 0; j < g->degre[i]; j++){
-                    fprintf(stderr, "%d", g->adj[i][j]);
+                    fprintf(stderr, "%d\n", g->adj[i][j]);
                 }
             }
             sum = sum + c;
@@ -132,7 +132,7 @@ graph* graphe_genere_aretes(int n, int m){
         g -> degre[i] = 0;
     }
     for (int i = 0; i < m; i++){
-        couple c = reciphi(i);
+        couple c = reciphi(liste[i]);
         g -> adj[c.a][g -> degre[c.a]] = c.b;
         g -> adj[c.b][g -> degre[c.b]] = c.a;
         g -> degre[c.a] ++;
@@ -141,7 +141,7 @@ graph* graphe_genere_aretes(int n, int m){
     free(liste);
 
     for (int i = 0; i < n; i++){
-        melange_liste(g->adj[i], n);
+        melange_liste(g->adj[i], g->degre[i]);
     }
     g -> n = n;
     return g;
@@ -155,7 +155,7 @@ void test_genere_2(void){
             for (int i = 0; i < g->n; i++){
                 c = c + g->degre[i];
                 for (int j = 0; j < g->degre[i]; j++){
-                    fprintf(stderr, "%d", g->adj[i][j]);
+                    fprintf(stderr, "%d\n", g->adj[i][j]);
                 }
             }
             libere(g);
@@ -277,13 +277,23 @@ void affiche_chemin(tab* ch){
 }
 
 
+void libere_ch(tab* ch){
+    free(ch -> tab);
+    free(ch);
+}
+
+
 int main(){
     init_alea();
-    test_genere();
+    graph* g = graphe_genere_aretes(10, 40);
+    tab* ch = algo(g);
+    libere(g);
+    libere_ch(ch);
     return 0;
 }
 
-//Erreur dans les adjacences, il y a des valeurs aberrantes
+//Soit les adjacences ne sont pas symmétriques, soit il y a
+//un soucis dans l'algo
 
 
 //Cf feuille de tp pour les questions de corrections
