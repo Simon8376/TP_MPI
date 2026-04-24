@@ -55,7 +55,7 @@ let voisins_libres grille (i, j) =
 	List.filter (fun (x, y) -> x >= 0 && y >= 0 && x < t && y < t && grille.(x).(y) = 0) l
 
 
-exception Found
+exception Found of int
 
 
 let mix tab = 
@@ -213,13 +213,12 @@ let astar grille (i, j) (k, l) h height =
 			let (x, y), ch = pfile_defile pfile in
 			let dist, ch = d.(x).(y) in
 			affiche_chemin Graphics.blue ch height;
-			if (x, y) = (k, l) then raise Found 
+			if (x, y) = (k, l) then raise (Found dist)
 			else begin
 				List.iter (fun (z, w) -> 
 					let new_d = dist + 1 in 
 					if new_d < fst d.(z).(w) then begin
 						pfile_maj pfile ((z, w), new_d + h1 (z, w));
-						Printf.printf "Added to pfile\n";
 						d.(z).(w) <- new_d, (z, w) :: ch;
 						draw (z, w) height Graphics.yellow;
 					end) 
@@ -229,9 +228,9 @@ let astar grille (i, j) (k, l) h height =
 			end
 		done;
 		failwith "Not found"
-	with Found -> begin
-		Printf.printf "FOUND!";
-		affiche_chemin Graphics.red (snd d.(k).(l)) height
+	with Found distance -> begin
+		affiche_chemin Graphics.red (snd d.(k).(l)) height;
+		distance
 	end
 
 
@@ -285,13 +284,12 @@ let astar_partie_3 grille adjacence (i, j) (k, l) h height =
 			let (x, y), ch = pfile_defile pfile in
 			let dist, ch = d.(x).(y) in
 			affiche_chemin Graphics.blue ch height;
-			if (x, y) = (k, l) then raise Found 
+			if (x, y) = (k, l) then raise (Found dist) 
 			else begin
 				List.iter (fun ((z, w), len_ch) -> 
 					let new_d = dist + len_ch in 
 					if new_d < fst d.(z).(w) then begin
 						pfile_maj pfile ((z, w), new_d + h1 (z, w));
-						Printf.printf "Added to pfile\n";
 						d.(z).(w) <- new_d, (fst (chemin_direct (x, y) (z, w))) @ ch;
 						draw (z, w) height Graphics.yellow;
 					end) 
@@ -301,9 +299,9 @@ let astar_partie_3 grille adjacence (i, j) (k, l) h height =
 			end
 		done;
 		failwith "Not found"
-	with Found -> begin
-		Printf.printf "FOUND!";
-		affiche_chemin Graphics.red (snd d.(k).(l)) height
+	with Found distance -> begin
+		affiche_chemin Graphics.red (snd d.(k).(l)) height;
+		distance
 	end
 
 
@@ -355,7 +353,9 @@ let coloration grille =
 
 
 let main () =
+	let i = ref 0 in
 	while true do
+		incr i;
 		let h = eucli in
 		let grille = construire_grille n m p in
 		let colo, num_colo = coloration grille in
@@ -367,17 +367,20 @@ let main () =
 		tracer_grille grille colo num_colo height;
 		draw (k, l) height Graphics.green;
 		draw (x, y) height Graphics.yellow;
-		astar grille (x, y) (k, l) h height;
+		let d = astar grille (x, y) (k, l) h height in 
+		Printf.printf "Iteration %d: \nNaive astar trouve une distance %d\n" !i d;
+		flush stdout;
 
 		let adj = construire_graphe grille b in
 		tracer_grille grille colo num_colo height;
 
-		tracer_grille grille colo height;
 		Unix.sleepf 1.;
 		draw (k, l) height Graphics.green;
 		draw (x, y) height Graphics.yellow;
 		Graphics.set_window_title "astar turbo";
-		astar_partie_3 grille adj (x, y) (k, l) h height;
+		let d = astar_partie_3 grille adj (x, y) (k, l) h height in 
+		Printf.printf "Segments astar trouve une distance %d\n\n" d;
+		flush stdout;
 
 		Unix.sleepf 5.
 	done
