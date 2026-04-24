@@ -9,6 +9,8 @@ let n, m = 200, 200 (*Taille de la grille*)
 let startx, starty = n/2, m/2  (*Position de la case de départ*)
 let height = 5 (*Taille de chaque pixel*)
 let p = 0.3 (*Proba qu'il y ait un obstacle (grosso modo)*)
+let max_iter = 1500 (*nombre d'itérations du dfs pour trouver deux points accessibles dans ensemble_accessible.
+	A priori, plus max_iter est grand, plus on va cherche des points éloignés*)
 
 let rand p = (*1 avec proba p*)
 	let b = (1 lsl 30) -1 in
@@ -26,15 +28,15 @@ let construire_grille n m p =
 	done;
 	mat
 
-let tracer_grille grille colo k =
-  Graphics.open_graph "";
+let tracer_grille grille colo num_colo k =
+  	Graphics.open_graph "";
 	Graphics.resize_window 1000 1000;
 	let t = Array.length grille in
 	for i = 0 to t-1 do 
 		for j = 0 to t-1 do 
 			let color = 
 				if grille.(i).(j) = 1 then 
-					(947284739857399573 * colo.(i).(j)) mod (1 lsl 14)
+					((1 lsl 29) * colo.(i).(j)) / num_colo
 				else
 					Graphics.white
 			in
@@ -235,19 +237,19 @@ let astar grille (i, j) (k, l) h height =
 
 let chemin_direct (i, j) (x, y) = 
 	let len_ch = max (i-x) (x-i) + max (j-y) (y-j) in
-	List.init len_ch (fun c -> (i + (x-i)*c/len_ch, j + (y-j)*c/len_ch))
+	List.init len_ch (fun c -> (i + (x-i)*c/len_ch, j + (y-j)*c/len_ch)), len_ch
 
 
 let construire_graphe grille b =
 	let n, m = Array.length grille, Array.length grille.(0) in 
-	let adj = Array.make_matrix n m [] in
+	let adj = Array.make_matrix n m [] in (*Contient les destinations directs et leur distance*)
 
 	let voisins_segments (i, j) = 
 		for k = max 0 (i-b) to min n (i+b) do 
 			for l = max 0 (j-b) to min m (j+b) do 
-				let ch = chemin_direct (i, j) (k, l) in 
+				let ch, len = chemin_direct (i, j) (k, l) in 
 				if not (List.exists (fun (x, y) -> grille.(x).(y) = 1) ch) then 
-					adj.(i).(j) <- (k, l) :: adj.(i).(j)
+					adj.(i).(j) <- (((k, l), len) :: adj.(i).(j))
 			done
 		done
 	in
@@ -285,12 +287,12 @@ let astar_partie_3 grille adjacence (i, j) (k, l) h height =
 			affiche_chemin Graphics.blue ch height;
 			if (x, y) = (k, l) then raise Found 
 			else begin
-				List.iter (fun (z, w) -> 
-					let new_d = dist + 1 in 
+				List.iter (fun ((z, w), len_ch) -> 
+					let new_d = dist + len_ch in 
 					if new_d < fst d.(z).(w) then begin
 						pfile_maj pfile ((z, w), new_d + h1 (z, w));
 						Printf.printf "Added to pfile\n";
-						d.(z).(w) <- new_d, (chemin_direct (x, y) (z, w)) @ ch;
+						d.(z).(w) <- new_d, (fst (chemin_direct (x, y) (z, w))) @ ch;
 						draw (z, w) height Graphics.yellow;
 					end) 
 							adjacence.(x).(y);
@@ -347,36 +349,37 @@ let coloration grille =
 		done;
 	done;
 	
-	vus
+	vus, !k
 
 
 
 
 let main () =
-	let h = eucli in
-	let grille = construire_grille n m p in
-	let colo = coloration grille in
-	let (x, y) = (startx, starty) in
-	grille.(x).(y) <- 0;
-	let (k, l) = choice_within (ensemble_accessibles grille (x, y)) in
+	while true do
+		let h = eucli in
+		let grille = construire_grille n m p in
+		let colo, num_colo = coloration grille in
+		let (x, y) = (startx, starty) in
+		grille.(x).(y) <- 0;
+		let (k, l) = choice_within (ensemble_accessibles grille (x, y)) in
 
-	Graphics.set_window_title "astar basique";
-	tracer_grille grille colo height;
-	draw (k, l) height Graphics.green;
-	draw (x, y) height Graphics.yellow;
-	astar grille (x, y) (k, l) h height;
+		Graphics.set_window_title "astar basique";
+		tracer_grille grille colo num_colo height;
+		draw (k, l) height Graphics.green;
+		draw (x, y) height Graphics.yellow;
+		astar grille (x, y) (k, l) h height;
 
-	Unix.sleepf 1.;
+		let adj = construire_graphe grille b in
+		tracer_grille grille colo num_colo height;
 
-	Graphics.set_window_title "astar turbo: calcul de l'adjacence...";
-	tracer_grille grille colo height;
-	Unix.sleepf 1.;
-	draw (k, l) height Graphics.green;
-	draw (x, y) height Graphics.yellow;
-	let adj = construire_graphe grille b in
-	Graphics.set_window_title "astar turbo: execution";
-	astar_partie_3 grille adj (x, y) (k, l) h height;
+		tracer_grille grille colo height;
+		Unix.sleepf 1.;
+		draw (k, l) height Graphics.green;
+		draw (x, y) height Graphics.yellow;
+		Graphics.set_window_title "astar turbo";
+		astar_partie_3 grille adj (x, y) (k, l) h height;
 
-	Unix.sleepf 5.
+		Unix.sleepf 5.
+	done
 
 let _ = main ()
