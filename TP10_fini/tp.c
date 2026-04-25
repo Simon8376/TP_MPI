@@ -92,6 +92,18 @@ void test_genere(void){
 }
 
 
+void test_genere_bis(void){
+    graph* g = graphe_genere(10, 0.25);
+    for (int i = 0; i < g->n; i++){
+        fprintf(stderr, "%d: ", i);
+        for (int j = 0; j < g->degre[i]; j++){
+            fprintf(stderr, "%d, ", g->adj[i][j]);
+        }
+        fprintf(stderr, "\n");
+    }
+    libere(g);
+}
+
 
 // voir feuille tp
 
@@ -147,7 +159,7 @@ graph* graphe_genere_aretes(int n, int m){
     return g;
 }
 
-void test_genere_2(void){
+void test_genere_aretes(void){
     for (int n = 3; n < 10; n++){
         for (int j = 0; j < n; j++){
             graph* g = graphe_genere_aretes(n, j);
@@ -164,6 +176,18 @@ void test_genere_2(void){
     }
 }
 
+void test_genere_aretes_bis(int n, int m){
+    graph* g = graphe_genere_aretes(n, m);
+    for (int i = 0; i < g->n; i++){
+        fprintf(stderr, "%d: ", i);
+        for (int j = 0; j < g->degre[i]; j++){
+            fprintf(stderr, "%d, ", g->adj[i][j]);
+        }
+        fprintf(stderr, "\n");
+    }
+    libere(g);
+}
+
 
 typedef struct tab{
     int* tab;
@@ -174,17 +198,34 @@ typedef struct tab{
 
 
 void rotation(tab* m, int i){
+    assert(i+1 < m->ind);
     int k = m -> ind-1;
     assert(i < k);
-    int* res = (int*)malloc(sizeof(int) * (k-i-1));
+    int* res = (int*)malloc(sizeof(int) * (k-i));
     for (int ind = 0; ind < k-i; ind++){
-        res[ind] = m -> tab[-ind + k];
+        res[ind] = m -> tab[k-ind];
     }
-    for (int ind = 0; ind < k-i; i++){
+    for (int ind = 0; ind < k-i; ind++){
         m -> tab[ind+i+1] = res[ind];
     }
     free(res);
 }
+
+
+void affiche_chemin(tab* ch){
+    for (int i = 0; i < ch -> ind; i++){
+        printf("%d, ", ch->tab[i]);
+    }
+    printf("\n");
+}
+
+
+void libere_ch(tab* ch){
+    free(ch -> tab);
+    free(ch);
+}
+
+
 
 
 void ajout(tab* tab, int val){
@@ -196,6 +237,26 @@ void ajout(tab* tab, int val){
         printf("Impossible\n");
     }
 }
+
+void test_rotation(void){
+    tab* m = malloc(sizeof(tab));
+    m->tab = malloc(sizeof(int) * 10);
+    m->t = 10;
+    m->ind = 7;
+    m->fail = false;
+    for (int i = 0; i < 7; i++){
+        m->tab[i] = i;
+    }
+
+    affiche_chemin(m);
+    rotation(m, 2);
+    affiche_chemin(m);
+    ajout(m, 8);
+    affiche_chemin(m);
+
+    libere_ch(m);
+}
+
 
 
 tab* algo(graph* g){
@@ -217,22 +278,15 @@ tab* algo(graph* g){
     assert(ch->tab[0] < g->n);
     assert(ch->tab[0] >= 0);
 
-    int tour = 0;
 
     while (ch -> ind < g -> n){
-        tour++;
-        fprintf(stderr, "Tour %d\n", tour);
         int vk = ch -> tab[ch -> ind -1];
-        fprintf(stderr, "vk = %d\n", vk);
         if (nb_unused[vk] == 0){
             ch -> fail = true;
             return ch;
         }
         else{
             int u = unused[vk][0];
-            fprintf(stderr, "checked ok\n");
-            fprintf(stderr, "%d\n", u);
-            fprintf(stderr, "%d\n", nb_unused[u]);
             unused[vk][0] = unused[vk][nb_unused[vk] -1];
             nb_unused[vk]--;
             
@@ -241,8 +295,7 @@ tab* algo(graph* g){
                 if (unused[u][i] == vk){
                     unused[u][i] = unused[u][nb_unused[u] -1];
                     nb_unused[u]--;
-                    i = nb_unused[u]+1;
-                    fprintf(stderr, "checked ok");
+                    i = nb_unused[u];
                 }
             }
             if (i != nb_unused[u]+1){
@@ -252,7 +305,7 @@ tab* algo(graph* g){
 
             bool b = true;
             int j;
-            for (int i = 0; i < ch->ind; i++){
+            for (int i = 0; i < ch->ind-1; i++){
                 if (u == ch -> tab[i]){
                     b = false;
                     j = i;
@@ -270,30 +323,26 @@ tab* algo(graph* g){
 
 
 
-void affiche_chemin(tab* ch){
-    for (int i = 0; i < ch -> ind -1; i++){
-        printf("%d, ", ch->tab[i]);
-    }
-}
-
-
-void libere_ch(tab* ch){
-    free(ch -> tab);
-    free(ch);
-}
-
-
-int main(){
+int test_algo(int n, int m){
     init_alea();
-    graph* g = graphe_genere_aretes(10, 40);
+    graph* g = graphe_genere_aretes(n, m);
     tab* ch = algo(g);
+    while (ch->fail){
+        fprintf(stderr, "Chemin trouvé, incomplet: ");
+        affiche_chemin(ch);
+        libere_ch(ch);
+        ch = algo(g);
+    }
+    fprintf(stderr, "Chemin trouvé, COMPLET!! ");
+    affiche_chemin(ch);
     libere(g);
     libere_ch(ch);
     return 0;
 }
 
-//Soit les adjacences ne sont pas symmétriques, soit il y a
-//un soucis dans l'algo
+int main(){
+    test_algo(15, 40);
+}
 
 
 //Cf feuille de tp pour les questions de corrections

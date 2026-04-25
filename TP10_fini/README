@@ -1,0 +1,9 @@
+Implémentation d'un algorithme probabiliste de détermination
+d'un chemin hamiltonien. On utilise pour cela un graphe aléatoire
+donné par la construction de Erdos-Rényi.
+Lancer 
+gcc -o tp -fsanitize=address -Wall -pedantic tp.c && ./tp
+permet de construire un tel graphe avec 15 noeuds et 40 arêtes
+(dans l'état actuel des choses) et y cherche un chemin hamiltonien.
+L'algorithme itère tant qu'il n'en a pas trouvé.
+(Spoiler, il n'en existe pas toujours)
