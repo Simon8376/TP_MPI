@@ -1,6 +1,6 @@
 .PHONY: all clean
 
-all: print_mnist mnist_to_pgm main
+all: print_mnist mnist_to_pgm prioQueue main
 
 mnist_to_pgm: mnist.cmx mnist_to_pgm.cmx
 	ocamlopt -o $@ $^
@@ -21,7 +21,7 @@ clean:
 # Dépendances générées automatiquement avec ocamldep
 knn.cmo : \
     knn.cmi
-knn.cmx : prioQueue.cmx \
+knn.cmx : \
     knn.cmi
 main.cmo : \
     mnist.cmi

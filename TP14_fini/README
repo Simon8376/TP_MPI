@@ -1,0 +1,9 @@
+Implémentation de k plus proches voisins pour reconnaître des 
+vêtements via la banque MNIST. Dans knn, classify implémente
+les k plus proches voisins naïvement puis classify_2 le fait 
+via un arbre k-dimensionnel. Le premier prend plusieurs minutes
+à effectuer tous les tests (au moins 10, mais fonctionne)
+et le deuxième à peu près autant...
+
+make puis ./main permet de lancer les tests. Actuellement, k = 3 et 
+on tourne via les arbres k-dimensionnels.

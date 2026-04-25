@@ -4,6 +4,7 @@
    d'une fonction. Mais la convention du C est relativement propre, donc on la
    reprend ici. On se chargera d'exécuter manuellement [main] à la fin du
    fichier. *)
+
 let main () =
 	let train_images = Mnist.open_in "fashion/train-images-idx3-ubyte" in
 	let train_labels = Mnist.open_in "fashion/train-labels-idx1-ubyte" in
@@ -17,7 +18,7 @@ let main () =
       while !i < 50 do 
          let data = Mnist.get test_images !i in 
          let res = Mnist.get test_labels !i in
-         Printf.printf "Test %d: Found %d where should have %d\n" !i (Knn.classify train k data) res.(0);
+         Printf.printf "Test %d: Found %d where should have %d\n" !i (Knn.classify_2 train k data) res.(0);
          incr i
       done
    with _ -> Printf.printf "Failed after %i tests\n" !i
