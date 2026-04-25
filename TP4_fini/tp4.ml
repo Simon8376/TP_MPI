@@ -173,7 +173,7 @@ let bfs g matching = (*On compte sur le fait que lorsque la distance commence à
   let l = free_vertices matching in
   let distance = Array.make t 10000 in 
   let q = Queue.create () in
-  Array.iter (fun i -> if col.(i) = 0 then distance.(i) <- 0) l;
+  List.iter (fun i -> if col.(i) = 0 then distance.(i) <- 0) l;
 
   for i = 0 to t-1 do 
     if col.(i) = 0 && List.mem i l then begin 

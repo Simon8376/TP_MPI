@@ -1,0 +1,3 @@
+Implémentation d'une représentation des regex de Kleene.
+L'idée est d'implémenter une fonction de reconnaissance d'une 
+regex au sein d'une chaîne de caractères.

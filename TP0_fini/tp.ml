@@ -404,11 +404,11 @@ let () =
     p := traitement_min_max !p !vus;
     vus := minmax !p
   done;
-  affiche_plateau !p;
+  affiche_plateau !p
 
 
 let alphabeta p = (*BIIIG flemme: comprends exactement ce que tu dois faire*)
-  let vus = Hashtbl.make 1000 in 
+  let vus = Hashtbl.create 1000 in 
 
   let minimum (d1, v1) (d2, v2) p = (*Minimum prioritaire sur v, puis minimisant la distance en cas d'ég si c'est dans le bon sens, maximise sinon*)
     if v1 > v2 || (v1 = v2 && ((d1 < 20 && v1 = -1 && d1 > d2) || (d2 < 20 &&v1 = 1 && d1 < d2))) then d2, v2

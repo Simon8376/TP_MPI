@@ -1,0 +1,5 @@
+Implémentation de l'algorithme de Blossom (d'Edmonds) dans
+le cas de graphes bipartis. On implémente aussi une amélioration
+afin de trouver un chemin maximal à chaque itération (rappel: le
+but est de trouver un chemin maximum). Ca evite de faire trop
+d'itérations.
